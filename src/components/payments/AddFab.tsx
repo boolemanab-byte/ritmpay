@@ -1,20 +1,21 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { Pressable, View } from "react-native";
+import { t } from "@/lib/i18n";
 import { colors } from "@/lib/theme";
 
 interface Props {
   onPress: () => void;
-  /** Distance from the bottom of the screen (clear the tab bar) */
+  /** Відступ від низу екрана (щоб не перекривати таб-бар) */
   bottom: number;
 }
 
-/** Futuristic FAB: gradient core, glass halo ring, soft colored glow. */
+/** Футуристична FAB: градієнтне ядро, скляне кільце, м’яке кольорове сяйво. */
 export function AddFab({ onPress, bottom }: Props) {
   return (
     <Pressable
       onPress={onPress}
-      accessibilityLabel="Add payment"
+      accessibilityLabel={t.dashboard.addLabel}
       className="absolute right-5 active:scale-95"
       style={{ bottom }}
     >

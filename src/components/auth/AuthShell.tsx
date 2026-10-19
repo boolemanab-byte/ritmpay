@@ -4,6 +4,7 @@ import { ReactNode } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from "react-native";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { Screen } from "@/components/ui/Screen";
+import { t } from "@/lib/i18n";
 import { colors } from "@/lib/theme";
 
 interface Props {
@@ -50,7 +51,7 @@ export function AuthShell({ title, subtitle, children, footer }: Props) {
                 Ритм<Text className="text-gold-400">Pay</Text>
               </Text>
               <Text className="mt-1 text-sm text-mist-300">
-                Your bills, in rhythm.
+                {t.brand.tagline}
               </Text>
             </View>
 

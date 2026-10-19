@@ -2,15 +2,17 @@ import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { Redirect, Tabs } from "expo-router";
 import { StyleSheet } from "react-native";
-import { useAuth } from "@/context/AuthContext";
-import { colors } from "@/lib/theme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { LoadingScreen } from "@/components/ui/LoadingScreen";
+import { useAuth } from "@/context/AuthContext";
+import { t } from "@/lib/i18n";
 import { TAB_BAR_HEIGHT } from "@/lib/layout";
+import { colors } from "@/lib/theme";
 
 export default function TabsLayout() {
+  const { user, initializing } = useAuth();
   const insets = useSafeAreaInsets();
-  const { user } = useAuth();
-
+  if (initializing) return <LoadingScreen />;
   if (!user) return <Redirect href="/login" />;
 
   return (
@@ -21,7 +23,7 @@ export default function TabsLayout() {
         tabBarActiveTintColor: colors.sky[300],
         tabBarInactiveTintColor: colors.mist[500],
         tabBarLabelStyle: { fontSize: 11, fontWeight: "600" },
-        // Floating glass tab bar
+        // Плаваючий скляний таб-бар
         tabBarStyle: {
           position: "absolute",
           borderTopWidth: 0,
@@ -39,7 +41,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Payments",
+          title: t.tabs.payments,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="wallet-outline" size={size} color={color as string} />
           ),
@@ -48,7 +50,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="history"
         options={{
-          title: "History",
+          title: t.tabs.history,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="time-outline" size={size} color={color as string} />
           ),
@@ -57,7 +59,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="settings"
         options={{
-          title: "Settings",
+          title: t.tabs.settings,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="settings-outline" size={size} color={color as string} />
           ),

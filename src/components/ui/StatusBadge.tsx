@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Text, View } from "react-native";
+import { t } from "@/lib/i18n";
 import { colors } from "@/lib/theme";
 import type { PaymentStatus } from "@/lib/types";
 
@@ -14,14 +15,14 @@ const CONFIG: Record<
   }
 > = {
   paid: {
-    label: "Paid",
+    label: t.status.paid,
     icon: "checkmark-circle",
     box: "bg-sky-400/15 border-sky-400/30",
     text: "text-sky-300",
     color: colors.sky[300],
   },
   pending: {
-    label: "Pending",
+    label: t.status.pending,
     icon: "time",
     box: "bg-gold-400/15 border-gold-400/30",
     text: "text-gold-300",
