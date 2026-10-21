@@ -9,16 +9,10 @@
       "distribution": "internal"
     },
     "preview": {
-      "distribution": "internal",
-      "env": {
-        "EAS_BUILD_NPM_COMMAND": "npm install"
-      }
+      "distribution": "internal"
     },
     "production": {
-      "autoIncrement": true,
-      "env": {
-        "EAS_BUILD_NPM_COMMAND": "npm install"
-      }
+      "autoIncrement": true
     }
   },
   "submit": {

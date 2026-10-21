@@ -12,6 +12,8 @@ interface PaymentRow {
   previous_payment_date: string | null;
   next_payment_date: string;
   period_months: number;
+  /** Колонка з’являється після міграції supabase/add_period_weeks.sql */
+  period_weeks?: number | null;
   requires_readings: boolean;
   unit: string | null;
   tariff: number | string | null;
@@ -36,6 +38,7 @@ const toPayment = (r: PaymentRow): Payment => ({
   previousPaymentDate: r.previous_payment_date,
   nextPaymentDate: r.next_payment_date,
   periodMonths: r.period_months,
+  periodWeeks: r.period_weeks ?? undefined,
   requiresReadings: r.requires_readings,
   unit: (r.unit ?? undefined) as PaymentUnit | undefined,
   tariff: r.tariff == null ? undefined : Number(r.tariff),
@@ -51,7 +54,16 @@ const toPayment = (r: PaymentRow): Payment => ({
 });
 
 // user_id заповнюється на сервері (default auth.uid()), тож клієнт його не передає.
-const toRow = (input: PaymentInput) => ({
+//
+// period_weeks додаємо лише коли воно потрібне: так застосунок працює й до міграції,
+// а «4 тижні» стають доступні після неї. clearWeeks — коли платіж переводять
+// з тижневої періодичності назад на місячну.
+const toRow = (input: PaymentInput, clearWeeks = false) => ({
+  ...(input.periodWeeks
+    ? { period_weeks: input.periodWeeks }
+    : clearWeeks
+      ? { period_weeks: null }
+      : {}),
   title: input.title,
   category: input.category,
   subcategory: input.subcategory,
@@ -91,10 +103,14 @@ export async function insertPayment(input: PaymentInput): Promise<Payment> {
   return toPayment(data as PaymentRow);
 }
 
-export async function patchPayment(id: string, input: PaymentInput): Promise<Payment> {
+export async function patchPayment(
+  id: string,
+  input: PaymentInput,
+  clearWeeks = false
+): Promise<Payment> {
   const { data, error } = await supabase
     .from("payments")
-    .update(toRow(input))
+    .update(toRow(input, clearWeeks))
     .eq("id", id)
     .select()
     .single();

@@ -26,3 +26,10 @@ export function parseUaDate(input: string): string | null {
   }
   return `${y}-${pad(m)}-${pad(d)}`;
 }
+
+/** Додає дні до ISO-дати (розбір вручну — без зсуву часових поясів). */
+export function addDays(iso: string, days: number): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  const date = new Date(y, m - 1, d + days);
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}

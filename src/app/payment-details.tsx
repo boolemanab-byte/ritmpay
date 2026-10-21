@@ -5,6 +5,7 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { InfoRow } from "@/components/payments/InfoRow";
 import { ReadingEditSheet } from "@/components/payments/ReadingEditSheet";
+import { PaySheet } from "@/components/payments/PaySheet";
 import { ReadingsSheet } from "@/components/payments/ReadingsSheet";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
@@ -25,6 +26,7 @@ function Details({ payment }: { payment: Payment }) {
   const { events, readings, markPaid, submitReadings, editReading } = usePayments();
 
   const [readingsVisible, setReadingsVisible] = useState(false);
+  const [payVisible, setPayVisible] = useState(false);
   const [editEntry, setEditEntry] = useState<ReadingEntry | null>(null);
   const [editVisible, setEditVisible] = useState(false);
 
@@ -127,15 +129,21 @@ function Details({ payment }: { payment: Payment }) {
               </Text>
             </Pressable>
           ) : null}
-          {!isPaid ? (
-            <Pressable
-              onPress={() => markPaid(payment.id)}
-              className="mt-3 h-11 flex-row items-center justify-center rounded-xl border border-sky-400/40 bg-sky-400/10 active:bg-sky-400/20"
-            >
-              <Ionicons name="checkmark-circle-outline" size={16} color={colors.sky[300]} />
-              <Text className="ml-2 text-sm font-semibold text-sky-300">{t.card.markPaid}</Text>
-            </Pressable>
-          ) : null}
+          <Pressable
+            onPress={() => setPayVisible(true)}
+            className={`mt-3 h-11 flex-row items-center justify-center rounded-xl border active:bg-sky-400/20 ${
+              isPaid ? "border-white/15 bg-white/5" : "border-sky-400/40 bg-sky-400/10"
+            }`}
+          >
+            <Ionicons
+              name={isPaid ? "play-forward-circle-outline" : "checkmark-circle-outline"}
+              size={16}
+              color={colors.sky[300]}
+            />
+            <Text className="ml-2 text-sm font-semibold text-sky-300">
+              {isPaid ? t.card.payAhead : t.card.markPaid}
+            </Text>
+          </Pressable>
         </GlassCard>
 
         {/* Уся інформація */}
@@ -216,6 +224,12 @@ function Details({ payment }: { payment: Payment }) {
         payment={payment}
         onClose={() => setReadingsVisible(false)}
         onSubmit={submitReadings}
+      />
+      <PaySheet
+        visible={payVisible}
+        payment={payment}
+        onClose={() => setPayVisible(false)}
+        onConfirm={markPaid}
       />
       <ReadingEditSheet
         visible={editVisible}

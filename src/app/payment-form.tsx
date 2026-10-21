@@ -92,6 +92,8 @@ function PaymentForm({ editing }: { editing?: Payment }) {
   const [titleTouched, setTitleTouched] = useState(!!editing);
   const [amount, setAmount] = useState(editing ? String(editing.amount) : "");
   const [periodMonths, setPeriodMonths] = useState(editing?.periodMonths ?? 1);
+  // «Кожні 4 тижні» — лише для мобільного зв’язку
+  const [periodWeeks, setPeriodWeeks] = useState<number | undefined>(editing?.periodWeeks);
   const [nextDate, setNextDate] = useState(
     formatDate(editing?.nextPaymentDate ?? addMonths(todayIso(), 1))
   );
@@ -116,6 +118,8 @@ function PaymentForm({ editing }: { editing?: Payment }) {
 
   const [error, setError] = useState<string | null>(null);
 
+  const weeksAllowed = category === "communication" && subKey === "mobile";
+  const weeksOn = weeksAllowed && periodWeeks !== undefined;
   const monthly = !!sub?.monthlyTariff;
   const meterAlways = !!sub?.meterAlways;
   const meterOn = !monthly && (meterAlways || hasMeter);
@@ -243,7 +247,8 @@ function PaymentForm({ editing }: { editing?: Payment }) {
       subcategory: category === "other" ? customName.trim() : subKey,
       amount: amountNum,
       nextPaymentDate: isoDate,
-      periodMonths,
+      periodMonths: weeksOn ? 1 : periodMonths,
+      periodWeeks: weeksOn ? periodWeeks : undefined,
       requiresReadings: meterOn,
       unit: monthly ? "міс." : meterOn || tariffNum !== undefined ? effectiveUnit : undefined,
       tariff: tariffNum,
@@ -404,10 +409,20 @@ function PaymentForm({ editing }: { editing?: Payment }) {
                 <Chip
                   key={p}
                   label={t.periods[p]}
-                  selected={periodMonths === p}
-                  onPress={() => setPeriodMonths(p)}
+                  selected={!weeksOn && periodMonths === p}
+                  onPress={() => {
+                    setPeriodMonths(p);
+                    setPeriodWeeks(undefined);
+                  }}
                 />
               ))}
+              {weeksAllowed ? (
+                <Chip
+                  label={t.periodWeeks(4)}
+                  selected={weeksOn && periodWeeks === 4}
+                  onPress={() => setPeriodWeeks(4)}
+                />
+              ) : null}
             </View>
 
             {/* TODO: замінити текстове поле на системний вибір дати

@@ -9,7 +9,8 @@ import {
   useState,
 } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { addMonths, todayIso } from "@/lib/dates";
+import { todayIso } from "@/lib/dates";
+import { dueDate } from "@/lib/schedule";
 import { t } from "@/lib/i18n";
 import {
   fetchPayments,
@@ -43,7 +44,8 @@ interface PaymentsContextValue {
   updatePayment: (id: string, input: PaymentInput) => Promise<void>;
   /** Нижче — «оптимістичні» дії: інтерфейс оновлюється одразу, при збої відкочується */
   deletePayment: (id: string) => Promise<void>;
-  markPaid: (id: string) => Promise<void>;
+  /** periods — скільки періодів оплачується за раз (>1 — оплата наперед або погашення боргу) */
+  markPaid: (id: string, periods?: number) => Promise<void>;
   submitReadings: (id: string, reading: number, total: number) => Promise<void>;
   /** Редагування показника з історії; кидає помилку — її показує шторка */
   editReading: (readingId: string, value: number) => Promise<void>;
@@ -152,7 +154,8 @@ export function PaymentsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const updatePayment = useCallback(async (id: string, input: PaymentInput) => {
-    const updated = await patchPayment(id, input);
+    const old = itemsRef.current.find((p) => p.id === id);
+    const updated = await patchPayment(id, input, !!old?.periodWeeks && !input.periodWeeks);
     setItems((prev) => prev.map((p) => (p.id === id ? updated : p)));
   }, []);
 
@@ -174,25 +177,31 @@ export function PaymentsProvider({ children }: { children: ReactNode }) {
   );
 
   const markPaid = useCallback(
-    async (id: string) => {
+    async (id: string, periods = 1) => {
       const p = itemsRef.current.find((x) => x.id === id);
       if (!p) return;
+      const count = Math.max(1, Math.floor(periods));
       const previous = todayIso();
-      const next = addMonths(p.nextPaymentDate, p.periodMonths);
+      const base = p.nextPaymentDate;
+      const finalNext = dueDate(p, base, count);
       setItems((prev) =>
         prev.map((x) =>
           x.id === id
-            ? { ...x, status: "paid", previousPaymentDate: previous, nextPaymentDate: next }
+            ? { ...x, status: "paid", previousPaymentDate: previous, nextPaymentDate: finalNext }
             : x
         )
       );
       try {
-        await setPaid(id, previous, next);
+        // Кожен оплачений період — окремий запис в історії
+        for (let i = 1; i <= count; i++) {
+          await setPaid(id, previous, dueDate(p, base, i));
+        }
         await refreshHistory();
       } catch (e) {
         console.warn("Mark paid:", e);
         setError(t.errors.save);
         await refresh();
+        await refreshHistory();
       }
     },
     [refresh, refreshHistory]

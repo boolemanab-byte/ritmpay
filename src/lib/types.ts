@@ -34,6 +34,11 @@ export interface Payment {
   nextPaymentDate: string;
   /** Періодичність у місяцях: 1, 3 або 12 */
   periodMonths: number;
+  /**
+   * Періодичність у тижнях (поки лише «4 тижні» для мобільного зв’язку).
+   * Якщо задано — має пріоритет над periodMonths (там тоді лишається 1).
+   */
+  periodWeeks?: number;
   /** Чи є лічильник (для води, газу й світла — завжди) */
   requiresReadings: boolean;
   /** Одиниця лічильника або тарифу */

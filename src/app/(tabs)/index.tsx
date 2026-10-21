@@ -1,10 +1,18 @@
 import { useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
-import { ActivityIndicator, FlatList, Pressable, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  FlatList,
+  LayoutAnimation,
+  Pressable,
+  Text,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AddFab } from "@/components/payments/AddFab";
 import { PaymentCard } from "@/components/payments/PaymentCard";
 import { PaymentMenuSheet } from "@/components/payments/PaymentMenuSheet";
+import { PaySheet } from "@/components/payments/PaySheet";
 import { ReadingsSheet } from "@/components/payments/ReadingsSheet";
 import { FilterBar } from "@/components/ui/FilterBar";
 import { GlassCard } from "@/components/ui/GlassCard";
@@ -12,9 +20,11 @@ import { Screen } from "@/components/ui/Screen";
 import { useAuth } from "@/context/AuthContext";
 import { usePayments } from "@/context/PaymentsContext";
 import { CATEGORY_DEFS } from "@/lib/categories";
+import { todayIso } from "@/lib/dates";
 import { formatMoney } from "@/lib/format";
 import { needsReadings } from "@/lib/paymentInfo";
-import { plural, t } from "@/lib/i18n";
+import { t } from "@/lib/i18n";
+import { monthName, paymentsWord, summarize } from "@/lib/schedule";
 import { TAB_BAR_HEIGHT } from "@/lib/layout";
 import { colors } from "@/lib/theme";
 import type { Payment, PaymentCategory } from "@/lib/types";
@@ -42,6 +52,7 @@ export default function DashboardScreen() {
   const {
     payments,
     readings,
+    events,
     loading,
     error,
     clearError,
@@ -56,14 +67,30 @@ export default function DashboardScreen() {
   const [readingsVisible, setReadingsVisible] = useState(false);
   const [menuFor, setMenuFor] = useState<Payment | null>(null);
   const [menuVisible, setMenuVisible] = useState(false);
+  const [payFor, setPayFor] = useState<Payment | null>(null);
+  const [payVisible, setPayVisible] = useState(false);
+  // Картки за замовчуванням згорнуті; тут — id тих, що розгорнув користувач
+  const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
 
-  const summary = useMemo(() => {
-    const pending = payments.filter((p) => p.status === "pending");
-    return {
-      pendingCount: pending.length,
-      pendingTotal: pending.reduce((sum, p) => sum + p.amount, 0),
-    };
-  }, [payments]);
+  const summary = useMemo(
+    () => summarize(payments, events, todayIso()),
+    [payments, events]
+  );
+
+  const toggleExpanded = useCallback((p: Payment) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(p.id)) next.delete(p.id);
+      else next.add(p.id);
+      return next;
+    });
+  }, []);
+
+  const openPay = useCallback((p: Payment) => {
+    setPayFor(p);
+    setPayVisible(true);
+  }, []);
 
   const visible = useMemo(
     () =>
@@ -120,13 +147,16 @@ export default function DashboardScreen() {
         renderItem={({ item }) => (
           <PaymentCard
             payment={item}
+            expanded={expanded.has(item.id)}
+            onToggle={toggleExpanded}
             onEnterReadings={openReadings}
-            onMarkPaid={(p) => markPaid(p.id)}
+            onPay={openPay}
             onOpenMenu={openMenu}
             onOpen={openDetails}
           />
         )}
-        ItemSeparatorComponent={() => <View className="h-4" />}
+        ItemSeparatorComponent={() => <View className="h-2.5" />}
+        extraData={expanded}
         showsVerticalScrollIndicator={false}
         contentContainerClassName="w-full max-w-[640px] self-center px-5"
         contentContainerStyle={{
@@ -150,16 +180,49 @@ export default function DashboardScreen() {
 
             <GlassCard className="mt-5 p-5" intensity={35}>
               <Text className="text-xs uppercase tracking-widest text-mist-500">
-                {t.dashboard.dueSoon}
+                {t.dashboard.toPayFor(monthName(summary.monthKey))}
               </Text>
               <Text className="mt-1 text-4xl font-bold text-gold-300">
-                {formatMoney(summary.pendingTotal)}
+                {formatMoney(summary.toPay)}
               </Text>
               <Text className="mt-1 text-sm text-mist-300">
-                {summary.pendingCount}{" "}
-                {plural(summary.pendingCount, ["платіж", "платежі", "платежів"])}{" "}
-                {plural(summary.pendingCount, ["очікує", "очікують", "очікують"])}
+                {summary.toPayCount > 0
+                  ? `${summary.toPayCount} ${paymentsWord(summary.toPayCount)}`
+                  : t.dashboard.nothingToPay}
               </Text>
+
+              <View className="my-4 h-px bg-white/10" />
+
+              <View className="flex-row items-center justify-between">
+                <Text className="text-sm text-mist-300">{t.dashboard.paidThisMonth}</Text>
+                <Text className="text-base font-semibold text-sky-300">
+                  {formatMoney(summary.paid)}
+                </Text>
+              </View>
+              <View className="mt-2 flex-row items-center justify-between">
+                <Text className="text-sm text-mist-300">
+                  {t.dashboard.forNextMonth(monthName(summary.nextMonthKey))}
+                </Text>
+                <Text className="text-base font-semibold text-mist-100">
+                  {formatMoney(summary.nextMonth)}
+                </Text>
+              </View>
+
+              {summary.debt > 0 ? (
+                <View className="mt-4 flex-row items-center justify-between rounded-xl border border-red-400/30 bg-red-400/10 px-3 py-2.5">
+                  <View className="flex-1 pr-3">
+                    <Text className="text-sm font-semibold text-red-300">
+                      {t.dashboard.debt}
+                    </Text>
+                    <Text className="text-xs text-red-300/80">
+                      {summary.debtCount} {paymentsWord(summary.debtCount)}
+                    </Text>
+                  </View>
+                  <Text className="text-lg font-bold text-red-300">
+                    {formatMoney(summary.debt)}
+                  </Text>
+                </View>
+              ) : null}
             </GlassCard>
 
             <Text className="mb-3 mt-8 text-lg font-semibold text-mist-100">
@@ -201,6 +264,13 @@ export default function DashboardScreen() {
         payment={readingsFor}
         onClose={() => setReadingsVisible(false)}
         onSubmit={submitReadings}
+      />
+
+      <PaySheet
+        visible={payVisible}
+        payment={payFor}
+        onClose={() => setPayVisible(false)}
+        onConfirm={markPaid}
       />
 
       <PaymentMenuSheet

@@ -1,6 +1,7 @@
 import { subcategoryLabel } from "./categories";
 import { formatDate, formatMoney } from "./format";
 import { t } from "./i18n";
+import { periodLabel } from "./schedule";
 import type { Payment, ReadingEntry } from "./types";
 
 export interface InfoRow {
@@ -16,7 +17,7 @@ export function paymentInfoRows(p: Payment): InfoRow[] {
     if (value && value.trim() !== "") rows.push({ key, label, value: value.trim() });
   };
 
-  add("period", t.details.period, t.periods[p.periodMonths]);
+  add("period", t.details.period, periodLabel(p));
   add("account", t.form.accountNumber, p.accountNumber);
   add("payer", t.form.payerName, p.payerName);
   add("address", t.form.address, p.address);
